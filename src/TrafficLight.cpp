@@ -1,5 +1,7 @@
 #include <iostream>
 #include <random>
+#include <thread>
+
 #include "TrafficLight.h"
 
 /* Implementation of class "MessageQueue" */
@@ -9,7 +11,12 @@ T MessageQueue<T>::receive()
 {
     // FP.5a : The method receive should use std::unique_lock<std::mutex> and _condition.wait() 
     // to wait for and receive new messages and pull them from the queue using move semantics. 
-    // The received object should then be returned by the receive function. 
+    // The received object should then be returned by the receive function.
+    std::unique_lock<std::mutex> lck(this->_mutexMessageQueue);
+    _conditionMessageQueue.wait(lck);
+    auto new_msg = std::move(_queue.back());
+    _queue.pop_back();
+    return new_msg;
 }
 
 template <typename T>
@@ -17,6 +24,9 @@ void MessageQueue<T>::send(T &&msg)
 {
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
     // as well as _condition.notify_one() to add a new message to the queue and afterwards send a notification.
+    std::lock_guard<std::mutex> lck(this->_mutexMessageQueue);
+    _queue.push_back(msg);
+    _conditionMessageQueue.notify_one(); 
 }
 
 
@@ -47,6 +57,8 @@ TrafficLight::TrafficLightPhase TrafficLight::getCurrentPhase()
 void TrafficLight::simulate()
 {
     // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called. To do this, use the thread queue in the base class. 
+    //std::thread t (&TrafficLight::cycleThroughPhases, this);
+    threads.emplace_back(std::move(std::thread(&TrafficLight::cycleThroughPhases, this)));
 }
 
 // virtual function which is executed in a thread
@@ -60,16 +72,13 @@ void TrafficLight::cycleThroughPhases()
     float duration = 4 + (rand() % static_cast<int>(6 - 4 + 1));
     while (true)
     {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         auto t2 = std::chrono::high_resolution_clock::now();
-        if (std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count() > duration)    
+        if (std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count() > duration*1000000)    
         {
             t1 = std::chrono::high_resolution_clock::now();
             this->_currentPhase = (this->_currentPhase == TrafficLightPhase::red) ? TrafficLightPhase::green : TrafficLightPhase::red;
             _msgQueue.send(std::move(this->_currentPhase));
         }
-        
-
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
