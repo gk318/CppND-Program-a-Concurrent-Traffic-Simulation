@@ -22,8 +22,8 @@ void WaitingVehicles::pushBack(std::shared_ptr<Vehicle> vehicle, std::promise<vo
 {
     std::lock_guard<std::mutex> lock(_mutex);
 
-    _vehicles.push_back(vehicle);
-    _promises.push_back(std::move(promise));
+    _vehicles.emplace_back(vehicle);
+    _promises.emplace_back(std::move(promise));
 }
 
 void WaitingVehicles::permitEntryToFirstInQueue()
