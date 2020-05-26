@@ -9,6 +9,7 @@
 // forward declarations to avoid include cycle
 class Vehicle;
 
+// Message queue class for Traffic light phases
 template <class T>
 class MessageQueue
 {

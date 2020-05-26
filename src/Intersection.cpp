@@ -141,6 +141,7 @@ void Intersection::processVehicleQueue()
     }
 }
 
+// check if traic light is green
 bool Intersection::trafficLightIsGreen()
 {   
    if (_trafficLight.getCurrentPhase() == TrafficLight::TrafficLightPhase::green)
